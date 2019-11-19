@@ -80,9 +80,10 @@ class GenericAlgorithm:
         w_n[best_index] = w_star
         # next sample = arg max w_n * KG
         next_sample = torch.argmax(w_n * self.arm_kg, 0)
-        print("w_n = ", w_n)
-        print("kg = ", self.arm_kg)
-        print("ww = ", w_n * self.arm_kg)
+        if self.verbose:
+            print("w_n = ", w_n)
+            print("kg = ", self.arm_kg)
+            print("ww = ", w_n * self.arm_kg)
         # take the next sample and update relevant values
         if self.verbose:
             print("Sampling from arm %d." % int(next_sample))

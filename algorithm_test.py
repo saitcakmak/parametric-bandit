@@ -16,11 +16,12 @@ hart = Hartmann()
 
 # construct functions g and h
 def g(X: Tensor):
-    return 1 - torch.exp(-X - 0.01)
+    X = torch.clamp(X, max=1)
+    return X.pow(1/2)
 
 
 def h(X: Tensor):
-    return torch.exp(-X)
+    return torch.clamp(X.pow(-1), min=-10**6, max=10**6)
 
 
 # construct the arm
