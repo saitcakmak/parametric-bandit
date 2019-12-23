@@ -6,8 +6,8 @@ from typing import Optional, Union, Tuple
 from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from gpytorch.likelihoods import GaussianLikelihood
 from botorch.optim import optimize_acqf
+from botorch.models.transforms import Standardize
 
 
 # noinspection PyArgumentList
@@ -82,8 +82,7 @@ class ParametricArm:
         """
         self.train_X = torch.rand((num_init_samples, self.dim))
         self.train_Y = self._function_call(self.train_X)
-        likelihood = GaussianLikelihood()
-        self.model = SingleTaskGP(self.train_X, self.train_Y, likelihood)
+        self.model = SingleTaskGP(self.train_X, self.train_Y, outcome_transform=Standardize(m=1))
         mll = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
         fit_gpytorch_model(mll)
 

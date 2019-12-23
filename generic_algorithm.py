@@ -1,13 +1,8 @@
+from typing import Callable, List
+
 import torch
-from torch import Tensor
-from botorch.acquisition import qKnowledgeGradient, PosteriorMean
 from botorch.test_functions.synthetic import SyntheticTestFunction
-from typing import Optional, Union, Tuple, Callable, List
-from botorch.models import SingleTaskGP
-from botorch.fit import fit_gpytorch_model
-from gpytorch.mlls import ExactMarginalLogLikelihood
-from gpytorch.likelihoods import GaussianLikelihood
-from botorch.optim import optimize_acqf
+
 from arm import ParametricArm
 
 
@@ -65,7 +60,7 @@ class GenericAlgorithm:
         Sample the next arm suggested by the algorithm
         :return:
         """
-        # calculate w_n
+        # calculate weights w_n
         best_mu, best_index = torch.max(self.arm_mu_best, 0)
         K_0 = self.initial_kg.sum() - self.initial_kg[best_index]
         K_n = self.arm_kg.sum = self.arm_kg[best_index]
