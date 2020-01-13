@@ -7,15 +7,16 @@ from scipy.stats import norm
 class DiscreteKG:
     """
     The discrete KG algorithm adopted from Frazier (2009)
-    TODO: TEST TEST TEST
+    Algorithm is for maximization - minimize flag implemented
     """
-    def __init__(self, M: int, error: float, mu_0: Tensor, Sigma_0: Tensor):
+    def __init__(self, M: int, error: float, mu_0: Tensor, Sigma_0: Tensor, minimize: bool = True):
         """
         Initialize the algorithm
         :param M: number of alternatives
         :param error: common variance of observation error
         :param mu_0: mean vector, tensor fo size M
         :param Sigma_0: covariance matrix, tensor of size M x M
+        :param minimize: makes the algorithm work for minimization by negating mu
         """
         self.M = M
         self.error = error
@@ -24,14 +25,17 @@ class DiscreteKG:
         if Sigma_0.size() != torch.Size([self.M, self.M]):
             raise ValueError('Sigma must be a tensor of size M x M.')
         self.mu = mu_0.reshape(-1).detach()
+        if minimize:
+            self.mu = - self.mu
         self.Sigma = Sigma_0.detach()
+        self.minimize = minimize
 
     def find_maximizer(self):
         """
         Runs Algorithm 2 as described in the paper.
         :param mu: mean vector, tensor of size M
         :param Sigma: covariance matrix, tensor of size M x M
-        :return: argmax KG(i)
+        :return: argmax KG(i) or argmin KG(i) if minimize
         """
         # algorithm loop
         v_star = -float('inf')
@@ -55,7 +59,7 @@ class DiscreteKG:
             b = b[A-1]
             c = c[A]
             v = torch.log(torch.sum((b[1:] - b[:-1]) * self._f(torch.abs(c[:-1]))))
-            if i == 1 or v > v_star:
+            if i == 0 or v > v_star:
                 v_star = v
                 x_star = i
         return x_star
@@ -76,7 +80,8 @@ class DiscreteKG:
         """
         return torch.tensor(norm.pdf(z)) + z * torch.tensor(norm.cdf(z))
 
-    def _algorithm_1(self, a: Tensor, b: Tensor) -> Tuple[Tensor, Tensor]:
+    @staticmethod
+    def _algorithm_1(a: Tensor, b: Tensor) -> Tuple[Tensor, Tensor]:
         """
         Algorithm 1 from Frazier 2009
         :param a: Input a
@@ -84,7 +89,7 @@ class DiscreteKG:
         :return: c and A, indices starting with 1 as in original algorithm description!
         """
         # The indices of a and b start with 0, however the rest starts with 1. Be careful about this!
-        M = len(a)
+        M = a.size(-1)
         c = torch.empty(M + 1)
         c[0] = -float('inf')
         c[1] = float('inf')
@@ -107,3 +112,8 @@ class DiscreteKG:
 
     def update_model(self):
         raise NotImplementedError
+
+
+if __name__ == '__main__':
+    kg = DiscreteKG(3, 1, torch.tensor([0.0, 5, 100]), torch.tensor([[1000.0, 5, 5], [5, 10, 5], [5, 5, 10]]))
+    print(kg.find_maximizer())

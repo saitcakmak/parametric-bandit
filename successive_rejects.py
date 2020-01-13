@@ -4,6 +4,7 @@ import torch
 class SuccessiveRejects:
     """
     The successive rejects algorithm for bandit optimization
+    Algorithm can work for either maximization or minimization
     """
     def __init__(self, K: int, N: int):
         """
@@ -25,9 +26,14 @@ class SuccessiveRejects:
         Return the budget for the current iteration
         :return: Budget per arm for the remaining arms
         """
-        if self.iteration == K-1:
+        if self.iteration == self.K-1:
             raise ValueError("Budget is exhausted.")
         budget = self.n[self.iteration + 1] - self.n[self.iteration]
         self.iteration += 1
         return budget
 
+
+if __name__ == '__main__':
+    sr = SuccessiveRejects(5, 200)
+    for i in range(4):
+        print(sr.get_current_budget())

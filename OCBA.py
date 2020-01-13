@@ -5,7 +5,7 @@ from torch import Tensor
 class OCBA:
     """
     The fully sequential OCBA algorithm. The algorithm description is taken from Wu & Zhou 2018
-    TODO: TEST TEST TEST
+    Algorithm is for minimization
     """
 
     def __init__(self, K: int, N: int, N_0: int, randomized: bool = False):
@@ -64,5 +64,8 @@ class OCBA:
         return i_star
 
 
-if __name == '__main__':
-    ocba = OCBA(5, 50, )
+if __name__ == '__main__':
+    ocba = OCBA(3, 50, 3, False)
+    x_b = torch.tensor([0, 20, 10])
+    s_b = torch.tensor([3, 5, 3])
+    print(ocba.next_sample(x_b, s_b))
