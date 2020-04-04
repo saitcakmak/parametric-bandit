@@ -10,6 +10,7 @@ class GenericAlgorithm:
     """
     The generic algorithm for the parametric bandit defined in the notes
     It does not specify g() and h() functions
+    This doesn't do too well. It has many shortcomings.
     """
 
     def __init__(self, arm_functions: List[SyntheticTestFunction], h: Callable, g: Callable, w_star0: float,

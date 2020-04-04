@@ -4,7 +4,7 @@ from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from botorch.models.transforms import Standardize
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from discrete_KG import DiscreteKG
+from discrete_KG import DiscreteKGAlg
 
 torch.manual_seed(0)
 
@@ -26,5 +26,5 @@ mu = gp.posterior(train_X).mean
 Sigma = gp.posterior(train_X).mvn.covariance_matrix
 
 # initiate the algorithm for testing
-dkg = DiscreteKG(M=n, error=noise_std ** 2, mu_0=mu, Sigma_0=Sigma)
+dkg = DiscreteKGAlg(M=n, error=noise_std ** 2, mu_0=mu, Sigma_0=Sigma)
 print(dkg.find_maximizer())

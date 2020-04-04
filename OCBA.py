@@ -5,22 +5,23 @@ from torch import Tensor
 class OCBA:
     """
     The fully sequential OCBA algorithm. The algorithm description is taken from Wu & Zhou 2018
-    Algorithm is for minimization
+    Algorithm is for minimization - has a maximize flag
     """
 
-    def __init__(self, K: int, N: int, N_0: int, randomized: bool = False):
+    def __init__(self, K: int, N: int, N_0: int, randomized: bool = False, maximize: bool = False):
         """
         Initialize the algorithm
         :param K: number of alternatives
-        :param N: total budget
-        :param N_0: initial budget
+        :param N: total budget after initialization
+        :param N_0: number of initial samples per alternative
         :param randomized: if True OCBA-R is used, else OCBA-D is used.
         """
         self.K = K
         self.N = N
-        self.remaining = N - K * N_0
+        self.remaining = N
         self.randomized = randomized
         self.total_sampled = torch.ones(K) * N_0  # total samples allocated to each arm so far
+        self.maximize = maximize
 
     def next_sample(self, x_bar: Tensor, s_bar: Tensor):
         """
@@ -37,6 +38,8 @@ class OCBA:
             raise ValueError('Budget already exhausted.')
         if any(s_bar <= 0):
             raise ValueError('s_bar must be strictly positive.')
+        if self.maximize:
+            x_bar = - x_bar
         x_bar = x_bar.reshape(-1)
         s_bar = s_bar.reshape(-1)
         # calculate alpha values
@@ -49,6 +52,7 @@ class OCBA:
         beta[best_index] = 0
         beta[best_index] = s_bar[best_index] * torch.sqrt(torch.sum(beta / s_bar.pow(2)))
         alpha = beta / torch.sum(beta)
+        i_star = None
         if not self.randomized:
             i_star = torch.argmax(alpha / self.total_sampled)
         else:
@@ -65,7 +69,8 @@ class OCBA:
 
 
 if __name__ == '__main__':
-    ocba = OCBA(3, 50, 3, False)
+    # TODO: this might require additional testing
+    ocba = OCBA(3, 50, 3, False, False)
     x_b = torch.tensor([0, 20, 10])
-    s_b = torch.tensor([3, 5, 3])
+    s_b = torch.tensor([3, 50, 30])
     print(ocba.next_sample(x_b, s_b))
