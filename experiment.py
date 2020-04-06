@@ -42,7 +42,7 @@ def OCBA_exp(prob: Problem, budget: int, n: list, num_init_samples: int, obs_std
             next_ -= n[arm]
             arm += 1
         if i < budget - 1:
-            prob.new_sample(arm, next_)
+            prob.new_sample(arm, next_, ocba=True)
     mean, var = prob.get_arm_stats()
     best = torch.argmax(mean)
     arm = 0
@@ -71,7 +71,7 @@ def KG_exp(prob: Problem, budget: int, obs_std: float, n: list):
             next_ -= n[arm]
             arm += 1
         if i < budget - 1:
-            prob.new_sample(arm, next_)
+            prob.new_sample(arm, next_, ocba=False)
     mu, Sigma = prob.get_arm_gp_mean_cov()
     best = torch.argmax(mu)
     arm = 0
@@ -102,7 +102,7 @@ def composite_exp(prob: Problem, budget: int, n: list, num_init_samples: int, ob
         mu, Sigma = prob.get_arm_gp_mean_cov(next_arm)
         next_alternative = kg.find_maximizer(mu, Sigma)
         if i < budget - 1:
-            prob.new_sample(next_arm, next_alternative)
+            prob.new_sample(next_arm, next_alternative, ocba=False)
     mu, Sigma = prob.get_arm_gp_mean_cov()
     best = torch.argmax(mu)
     arm = 0

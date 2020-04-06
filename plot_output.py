@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 
 
-filename = "std=10.pt"
+filename = "output/std=4_n=25.pt"
 data = torch.load(filename)
 results = data['results']
 

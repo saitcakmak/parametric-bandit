@@ -5,16 +5,16 @@ import torch
 from experiment import single_rep
 from time import time
 
-budget_list = [5, 10, 20, 40, 60, 80, 100, 150, 200]
-rep = 15
-n = [10, 10, 10]
-obs_std = 4.
+budget_list = [5, 10, 20, 40, 60, 80, 100, 150, 200, 500]
+rep = 5
+n = [25, 25, 25]
+obs_std = 2.
 num_init_samples = 1
 
 # TODO: do it so that instead of just running it again and again, we add samples to last one
 #       optimize by avoiding gp fitting with ocba runs
 
-output_file = 'std=4.pt'
+output_file = 'output/std=2_n=25.pt'
 try:
     output = torch.load(output_file)
     results = output['results']

@@ -15,11 +15,13 @@ class Problem:
     def __init__(self,
                  functions: List[SyntheticTestFunction],
                  alternative_points: List[Tensor],
-                 noise_std: float = None):
+                 noise_std: float = None,
+                 gp_update_freq: int = 10):
         """
-
+        Initialize
         :param functions: The initialized StandardizedFunction objects
         :param alternative_points: The points where the alternatives are - for each arm
+        :param gp_update_freq: We refit the GP model every this many samples.
         """
         self.arm_count = len(functions)
         self.functions = functions
@@ -27,6 +29,7 @@ class Problem:
             raise ValueError("Size mismatch between alternative points and arms.")
         self.alternative_points = alternative_points
         self.noise_std = noise_std
+        self.gp_update_freq = gp_update_freq
         self.models = [None] * self.arm_count
         self.sample_mean = list()
         self.sample_var = list()
@@ -76,30 +79,39 @@ class Problem:
 
         self.update_sample_stats()
         for i in range(self.arm_count):
-            self.fit_gp_model(i)
+            self.fit_gp_model(i, update=True)
 
-    def fit_gp_model(self, arm: int):
+    def fit_gp_model(self, arm: int, alternative: int = None, update: bool = False):
         """
         Fits a GP model to the given arm
         :param arm: Arm index
+        :param alternative: Last sampled arm alternative
+        :param update: Forces GP to be fitted. Otherwise, it is fitted every
+            self.gp_update_freq samples.
         :return: None
         """
-        train_X_list = list()
-        train_Y_list = list()
-        for j in range(len(self.alternative_points[arm])):
-            for k in range(len(self.observations[arm][j])):
-                train_X_list.append(self.alternative_points[arm][j].unsqueeze(-2))
-                train_Y_list.append(self.observations[arm][j][k].unsqueeze(-2))
-        train_X = torch.cat(train_X_list, dim=0)
-        train_Y = torch.cat(train_Y_list, dim=0)
-        if self.noise_std is None:
-            model = SingleTaskGP(train_X, train_Y, outcome_transform=Standardize(m=1))
+        arm_sample_count = sum([len(e) for e in self.observations[arm]])
+        if update or arm_sample_count % self.gp_update_freq == 0:
+            train_X_list = list()
+            train_Y_list = list()
+            for j in range(len(self.alternative_points[arm])):
+                for k in range(len(self.observations[arm][j])):
+                    train_X_list.append(self.alternative_points[arm][j].unsqueeze(-2))
+                    train_Y_list.append(self.observations[arm][j][k].unsqueeze(-2))
+            train_X = torch.cat(train_X_list, dim=0)
+            train_Y = torch.cat(train_Y_list, dim=0)
+            if self.noise_std is None:
+                model = SingleTaskGP(train_X, train_Y, outcome_transform=Standardize(m=1))
+            else:
+                model = FixedNoiseGP(train_X, train_Y, train_Yvar=torch.tensor([self.noise_std**2]).expand_as(train_Y),
+                                     outcome_transform=Standardize(m=1))
+            mll = ExactMarginalLogLikelihood(model.likelihood, model)
+            fit_gpytorch_model(mll)
+            self.models[arm] = model
         else:
-            model = FixedNoiseGP(train_X, train_Y, train_Yvar=torch.tensor([self.noise_std**2]).expand_as(train_Y),
-                                 outcome_transform=Standardize(m=1))
-        mll = ExactMarginalLogLikelihood(model.likelihood, model)
-        fit_gpytorch_model(mll)
-        self.models[arm] = model
+            last_point = self.alternative_points[arm][alternative].reshape(1, -1)
+            last_observation = self.observations[arm][alternative][-1].reshape(1, -1)
+            self.models[arm].condition_on_observations(last_point, last_observation, noise=self.noise_std**2)
 
     def update_sample_stats(self):
         """
@@ -116,18 +128,22 @@ class Problem:
                 self.sample_mean[i].append(torch.mean(values))
                 self.sample_var[i].append(torch.var(values))
 
-    def new_sample(self, arm: int, alternative: int):
+    def new_sample(self, arm: int, alternative: int, ocba: bool):
         """
         Sample from a given alternative and update its model / stats
         :param arm: arm index
         :param alternative: alternative index
+        :param ocba: If OCBA, we do not update the GP model.
+            If not, we don't update sample stats. Saves on computation.
         :return: None
         """
         self.observations[arm][alternative].append(self.functions[arm](self.alternative_points[arm][alternative]))
-        values = torch.tensor(self.observations[arm][alternative])
-        self.sample_mean[arm][alternative] = torch.mean(values)
-        self.sample_var[arm][alternative] = torch.var(values)
-        self.fit_gp_model(arm)
+        if ocba:
+            values = torch.tensor(self.observations[arm][alternative])
+            self.sample_mean[arm][alternative] = torch.mean(values)
+            self.sample_var[arm][alternative] = torch.var(values)
+        else:
+            self.fit_gp_model(arm, alternative)
 
     def get_arm_gp_mean_cov(self, arm: int = None):
         """
