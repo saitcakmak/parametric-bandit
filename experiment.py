@@ -18,7 +18,6 @@ from discrete_KG import DiscreteKGAlg
 from typing import Union
 
 negate = True  # negate the functions for maximization
-arm_count = 3
 
 
 def OCBA_exp(prob: Problem, budget: int, n: list, num_init_samples: int, obs_std: float = None, randomized: bool = False):
@@ -96,7 +95,7 @@ def composite_exp(prob: Problem, budget: int, n: list, num_init_samples: int, ob
     :param randomized: If True, uses randomized OCBA
     :return: Best arm and alternative
     """
-    ocba = OCBA(K=arm_count, N=budget, N_0=num_init_samples, randomized=randomized, maximize=True)
+    ocba = OCBA(K=len(n), N=budget, N_0=num_init_samples, randomized=randomized, maximize=True)
     for i in range(budget):
         mean, std = prob.get_outer_stats()
         next_arm = ocba.next_sample(mean, std)

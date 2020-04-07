@@ -97,6 +97,7 @@ class DiscreteKGAlg(ABC):
         :param a: Input a
         :param b: Input b, in strictly increasing order
         :return: c and A, indices starting with 1 as in original algorithm description!
+        # TODO: it would be great if we could get this to work faster. Think about doing some vector operations instead.
         """
         # The indices of a and b start with 0, however the rest starts with 1. Be careful about this!
         M = a.size(-1)
