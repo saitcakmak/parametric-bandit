@@ -56,9 +56,10 @@ class DiscreteKGAlg(ABC):
                     a[b == b[j]], _ = torch.sort(a[b == b[j]])
             # remove the redundant entries as described in the algorithm
             remaining = torch.ones(self.M, dtype=torch.bool)
-            for j in range(self.M - 1):
-                if b[j] == b[j + 1]:
-                    remaining[j] = 0
+            if any(b[1:] == b[:-1]):
+                for j in range(self.M - 1):
+                    if b[j] == b[j + 1]:
+                        remaining[j] = 0
             a = a[remaining]
             b = b[remaining]
             # c and A has indices starting at 1!
