@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 
 
-filename = "output/std=4_n=25.pt"
+filename = "output/sparse_init_v2.pt"
 data = torch.load(filename)
 results = data['results']
 
@@ -43,4 +43,5 @@ plt.legend()
 plt.grid(True)
 plt.xlabel("Budget")
 plt.ylabel("Regret")
+plt.yscale("log")
 plt.show()

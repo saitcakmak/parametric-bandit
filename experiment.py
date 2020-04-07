@@ -15,6 +15,7 @@ from OCBA import OCBA
 from copy import copy
 from time import time
 from discrete_KG import DiscreteKGAlg
+from typing import Union
 
 negate = True  # negate the functions for maximization
 arm_count = 3
@@ -88,9 +89,10 @@ def composite_exp(prob: Problem, budget: int, n: list, num_init_samples: int, ob
     To pick the arms, we will use OCBA with get_outer_stats for the arm stats.
     :param prob: Problem object
     :param budget: Total sampling budget after initialization
-    :param num_init_samples: number of samples for initialization
+    :param n: number of alternatives in each arm
+    :param num_init_samples: number of samples for initialization for each arm
     :param obs_std: For use with KG.
-    # TODO: eliminate need for this somehow. Just get the prediced one from the GP fit.
+    # TODO: eliminate need for this somehow. Just get the predicted one from the GP fit.
     :param randomized: If True, uses randomized OCBA
     :return: Best arm and alternative
     """
@@ -128,7 +130,16 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     """
     torch.manual_seed(seed)
 
-    functions = [function('branin', obs_std), function('levy', obs_std), function('hartmann6', obs_std)]
+    functions = [function('branin', obs_std),
+                 function('levy', obs_std),
+                 function('hartmann6', obs_std),
+                 function('branin', obs_std),
+                 function('levy', obs_std),
+                 function('hartmann6', obs_std),
+                 function('branin', obs_std),
+                 function('levy', obs_std),
+                 function('hartmann6', obs_std)
+                 ]
     alternative_points = list()
     for i in range(len(n)):
         alternative_points.append(torch.rand(n[i], functions[i].dim))
@@ -137,11 +148,18 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     problem.initialize_arms(num_samples=num_init_samples)
 
     # TODO: adjust it so we can switch between known and unknown noise levels
-    ocba_best = OCBA_exp(prob=copy(problem), budget=N, n=n, num_init_samples=num_init_samples, obs_std=obs_std)
-    ocba_flat_best = sum(n[:ocba_best[0]]) + ocba_best[1]
+    if isinstance(num_init_samples, int):
+        ocba_best = OCBA_exp(prob=copy(problem), budget=N, n=n, num_init_samples=num_init_samples, obs_std=obs_std)
+        ocba_flat_best = sum(n[:ocba_best[0]]) + ocba_best[1]
     kg_best = KG_exp(prob=copy(problem), budget=N, obs_std=obs_std, n=n)
     kg_flat_best = sum(n[:kg_best[0]]) + kg_best[1]
-    composite_best = composite_exp(prob=copy(problem), budget=N, n=n, num_init_samples=num_init_samples, obs_std=obs_std)
+    if isinstance(num_init_samples, int):
+        num_init = n * num_init_samples
+    elif isinstance(num_init_samples, list):
+        num_init = [len(e) for e in num_init_samples]
+    else:
+        raise ValueError("num_init_samples is of a type not handled yet.")
+    composite_best = composite_exp(prob=copy(problem), budget=N, n=n, num_init_samples=num_init, obs_std=obs_std)
     composite_flat_best = sum(n[:composite_best[0]]) + composite_best[1]
 
     val = torch.cat(problem.get_true_val(), dim=0)
@@ -151,7 +169,10 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
         best -= n[arm]
         arm += 1
 
-    ocba_regret = best_val - val[ocba_flat_best]
+    if isinstance(num_init_samples, int):
+        ocba_regret = best_val - val[ocba_flat_best]
+    else:
+        ocba_regret = 0.
     kg_regret = best_val - val[kg_flat_best]
     composite_regret = best_val - val[composite_flat_best]
     return ocba_regret, kg_regret, composite_regret

@@ -1,5 +1,6 @@
 import torch
 from torch import Tensor
+from typing import Union
 
 
 class OCBA:
@@ -8,19 +9,23 @@ class OCBA:
     Algorithm is for minimization - has a maximize flag
     """
 
-    def __init__(self, K: int, N: int, N_0: int, randomized: bool = False, maximize: bool = False):
+    def __init__(self, K: int, N: int, N_0: Union[int, list], randomized: bool = False, maximize: bool = False):
         """
         Initialize the algorithm
         :param K: number of alternatives
         :param N: total budget after initialization
-        :param N_0: number of initial samples per alternative
+        :param N_0: number of initial samples per alternative or a list of it.
+            List version is used for composite.
         :param randomized: if True OCBA-R is used, else OCBA-D is used.
         """
         self.K = K
         self.N = N
         self.remaining = N
         self.randomized = randomized
-        self.total_sampled = torch.ones(K) * N_0  # total samples allocated to each arm so far
+        if isinstance(N_0, int):
+            self.total_sampled = torch.ones(K) * N_0  # total samples allocated to each arm so far
+        else:
+            self.total_sampled = torch.tensor(N_0)
         self.maximize = maximize
 
     def next_sample(self, x_bar: Tensor, s_bar: Tensor):
