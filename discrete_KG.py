@@ -51,8 +51,9 @@ class DiscreteKGAlg(ABC):
             b, index = torch.sort(b)
             a = a[index]
             # handle ties in b, sort a in increasing order if ties found
-            for j in range(self.M):
-                a[b == b[j]], _ = torch.sort(a[b == b[j]])
+            if any(b[1:] == b[:-1]):
+                for j in range(self.M):
+                    a[b == b[j]], _ = torch.sort(a[b == b[j]])
             # remove the redundant entries as described in the algorithm
             remaining = torch.ones(self.M, dtype=torch.bool)
             for j in range(self.M - 1):

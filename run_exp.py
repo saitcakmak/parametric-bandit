@@ -11,7 +11,7 @@ rep = 5
 n = [25] * 9
 obs_std = 1.
 # num_init_samples = 1
-m = Bernoulli(0.1)
+m = Bernoulli(0.2)
 num_init_samples = [m.sample([25]),
                     m.sample([25]),
                     m.sample([25]),
@@ -22,6 +22,10 @@ num_init_samples = [m.sample([25]),
                     m.sample([25]),
                     m.sample([25])
                     ]
+
+for e in num_init_samples:
+    if sum(e) == 0:
+        e[0] = 1
 
 # TODO: do it so that instead of just running it again and again, we add samples to last one
 #       optimize by avoiding gp fitting with ocba runs
