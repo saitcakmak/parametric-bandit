@@ -9,7 +9,7 @@ from torch.distributions import Bernoulli
 budget_list = [10, 20, 50, 100, 200, 500]
 rep = 5
 n = [15] * 6
-obs_std = 1.
+obs_std = 25.
 # num_init_samples = 1
 m = Bernoulli(0.2)
 num_init_samples = [m.sample([15]),
@@ -27,7 +27,7 @@ for e in num_init_samples:
 # TODO: do it so that instead of just running it again and again, we add samples to last one
 #       optimize by avoiding gp fitting with ocba runs
 
-output_file = 'output/sparse_9arm.pt'
+output_file = 'output/sparse_6arm_std25.pt'
 try:
     output = torch.load(output_file)
     results = output['results']
