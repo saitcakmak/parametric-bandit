@@ -6,18 +6,19 @@ from experiment import single_rep
 from time import time
 from torch.distributions import Bernoulli
 
-budget_list = [10, 20, 50, 100, 200]
+budget_list = [10, 20, 50, 100, 200, 500]
 rep = 5
-n = [10] * 6
+n_arm = 50
+n = [n_arm] * 6
 obs_std = 50.
 # num_init_samples = 1
 m = Bernoulli(0.2)
-num_init_samples = [m.sample([10]),
-                    m.sample([10]),
-                    m.sample([10]),
-                    m.sample([10]),
-                    m.sample([10]),
-                    m.sample([10]),
+num_init_samples = [m.sample([n_arm]),
+                    m.sample([n_arm]),
+                    m.sample([n_arm]),
+                    m.sample([n_arm]),
+                    m.sample([n_arm]),
+                    m.sample([n_arm]),
                     ]
 
 for e in num_init_samples:
@@ -27,7 +28,7 @@ for e in num_init_samples:
 # TODO: do it so that instead of just running it again and again, we add samples to last one
 #       optimize by avoiding gp fitting with ocba runs
 
-output_file = 'output/sparse_6x10_std50.pt'
+output_file = 'output/sparse_6x50_std50.pt'
 try:
     output = torch.load(output_file)
     results = output['results']
