@@ -6,21 +6,18 @@ from experiment import single_rep
 from time import time
 from torch.distributions import Bernoulli
 
-budget_list = [10, 20, 50, 100, 200]#, 500]
+budget_list = [10, 20, 50, 100, 200, 500]
 rep = 5
-n = [25] * 9
+n = [15] * 6
 obs_std = 1.
 # num_init_samples = 1
 m = Bernoulli(0.2)
-num_init_samples = [m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25]),
-                    m.sample([25])
+num_init_samples = [m.sample([15]),
+                    m.sample([15]),
+                    m.sample([15]),
+                    m.sample([15]),
+                    m.sample([15]),
+                    m.sample([15]),
                     ]
 
 for e in num_init_samples:

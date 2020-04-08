@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 
 
-filename = "output/sparse_init_v2.pt"
+filename = "output/sparse_9arm.pt"
 data = torch.load(filename)
 results = data['results']
 
@@ -27,10 +27,6 @@ for i in range(key_count):
     composite_regret[i] = torch.mean(results[keys[i]][:, 2])
     composite_std[i] = torch.std(results[keys[i]][:, 2])
 
-# plt.errorbar(keys, ocba_regret, yerr=ocba_std, label="OCBA")
-# plt.errorbar(keys, kg_regret, yerr=kg_std, label="KG")
-# plt.errorbar(keys, composite_regret, yerr=composite_std, label="Composite")
-
 alpha = 0.3
 plt.plot(keys, ocba_regret, label="OCBA")
 plt.fill_between(keys, ocba_regret-ocba_std, ocba_regret+ocba_std, alpha=alpha)
@@ -43,5 +39,7 @@ plt.legend()
 plt.grid(True)
 plt.xlabel("Budget")
 plt.ylabel("Regret")
-plt.yscale("log")
+plt.title(filename)
+# plt.yscale("log")
+print(results[keys[0]].size(0))
 plt.show()

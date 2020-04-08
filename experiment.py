@@ -132,12 +132,9 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     functions = [function('branin', obs_std),
                  function('levy', obs_std),
                  function('hartmann6', obs_std),
-                 function('branin', obs_std),
-                 function('levy', obs_std),
-                 function('hartmann6', obs_std),
-                 function('branin', obs_std),
-                 function('levy', obs_std),
-                 function('hartmann6', obs_std)
+                 function('ackley', obs_std),
+                 function('threehumpcamel', obs_std),
+                 function('sixhumpcamel', obs_std),
                  ]
     alternative_points = list()
     for i in range(len(n)):
