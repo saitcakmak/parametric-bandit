@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 
 
-filename = "output/sparse_9arm.pt"
+filename = "output/sparse_6x50_std50.pt"
 data = torch.load(filename)
 results = data['results']
 

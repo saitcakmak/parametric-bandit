@@ -6,7 +6,7 @@ from experiment import single_rep
 from time import time
 from torch.distributions import Bernoulli
 
-budget_list = [10, 20, 50, 100, 200, 500]
+budget_list = [10, 20, 50, 100, 200]
 rep = 10
 n_arm = 50
 n = [n_arm] * 6

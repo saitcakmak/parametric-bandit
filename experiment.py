@@ -143,6 +143,10 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     problem = Problem(functions=functions, alternative_points=alternative_points, noise_std=obs_std)
     problem.initialize_arms(num_samples=num_init_samples)
 
+    # TODO: MPS runs into the chelosky issue, which is likely slowing things down
+    # print(problem.mps_test(0, 1000))
+    # return 0
+
     # TODO: adjust it so we can switch between known and unknown noise levels
     if isinstance(num_init_samples, int):
         ocba_best = OCBA_exp(prob=copy(problem), budget=N, n=n, num_init_samples=num_init_samples, obs_std=obs_std)
@@ -177,7 +181,7 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
 if __name__ == '__main__':
     start = time()
     res = single_rep(seed=0,
-                     n=[10, 10, 10],
+                     n=[10] * 6,
                      obs_std=1.,
                      N=10,
                      num_init_samples=1

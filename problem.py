@@ -6,6 +6,7 @@ from typing import List, Union
 from botorch.models import FixedNoiseGP, SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from botorch.models.transforms import Standardize
+from botorch.generation import MaxPosteriorSampling
 
 
 class Problem:
@@ -230,3 +231,17 @@ class Problem:
             mean = torch.mean(max_sample)
             std = torch.std(max_sample)
             return mean, std
+
+    def mps_test(self, arm: int, num_samples: int):
+        """
+        This is for testing the maximum posterior sampling
+        :param arm: Which arm to sample from
+        :param num_samples: Number of samples to take from the domain
+        :return: max sample point
+        """
+        model = self.models[arm]
+        dim = self.functions[arm].dim
+        mps = MaxPosteriorSampling(model)
+        X = torch.rand((100, num_samples, dim))
+        samples = mps(X)
+        return samples
