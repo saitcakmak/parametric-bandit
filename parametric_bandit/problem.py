@@ -215,7 +215,8 @@ class Problem:
     def get_true_val(self, negate: bool = True):
         """
         The true performance of the arms
-        :param negate: If True, the values are negated. Should be same as the Function negate.
+        :param negate: If True, the values are negated. Should be same as
+            the Function negate.
         :return: the true function value
         """
         true_val = list()

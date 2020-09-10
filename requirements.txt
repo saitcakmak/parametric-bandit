@@ -1,0 +1,6 @@
+torch
+gpytorch
+botorch
+matplotlib
+scipy
+numpy

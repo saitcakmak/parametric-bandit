@@ -3,7 +3,7 @@ from typing import Callable, List
 import torch
 from botorch.test_functions.synthetic import SyntheticTestFunction
 
-from arm import ParametricArm
+from parametric_bandit.arm import ParametricArm
 
 
 class GenericAlgorithm:
@@ -82,8 +82,10 @@ class GenericAlgorithm:
         delta = self.arm_mu_best - best_mu
         bar_delta = delta / delta.sum()
         h_bar_delta = self.h(bar_delta)
-        # TODO: w_n returns values outside the range [0,1] check what is wrong here - this is because of negative KG
-        #   we also get negative KG values, figure out how to handle that - maybe analytic EI, that seems to work
+        # TODO: w_n returns values outside the range [0,1] check what is wrong here
+        #  this is because of negative KG
+        #  we also get negative KG values, figure out how to handle that
+        #  maybe analytic EI, that seems to work
         normalized_h = h_bar_delta / (h_bar_delta.sum() - h_bar_delta[best_index])
         w_n = (1 - w_star) * normalized_h
         w_n[best_index] = w_star

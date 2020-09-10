@@ -9,12 +9,12 @@ and then send it a big block covariance matrix to use
 """
 
 import torch
-from test_functions.function_picker import function_picker
-from problem import Problem
-from OCBA import OCBA
+from parametric_bandit.test_functions.function_picker import function_picker
+from parametric_bandit.problem import Problem
+from parametric_bandit.OCBA import OCBA
 from copy import copy
 from time import time
-from discrete_KG import DiscreteKGAlg
+from parametric_bandit.discrete_KG import DiscreteKGAlg
 from typing import Union
 
 negate = True  # negate the functions for maximization
@@ -164,7 +164,7 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     )
     problem.initialize_arms(num_samples=num_init_samples)
 
-    # TODO: MPS runs into the chelosky issue, which is likely slowing things down
+    # TODO: MPS runs into the cholesky issue, which is likely slowing things down
     # print(problem.mps_test(0, 1000))
     # return 0
 

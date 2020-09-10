@@ -2,7 +2,7 @@ import torch
 from botorch.test_functions import Ackley, Hartmann
 from torch import Tensor
 
-from generic_algorithm import GenericAlgorithm
+from parametric_bandit.generic_algorithm import GenericAlgorithm
 
 # test function - just add anything from botorch.test_functions
 ack = Ackley()

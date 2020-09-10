@@ -4,7 +4,7 @@ from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from botorch.models.transforms import Standardize
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from discrete_KG import DiscreteKGAlg
+from parametric_bandit.discrete_KG import DiscreteKGAlg
 
 torch.manual_seed(0)
 

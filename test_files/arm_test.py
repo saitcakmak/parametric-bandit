@@ -1,5 +1,5 @@
 from botorch.test_functions import Ackley, Hartmann
-from arm import ParametricArm
+from parametric_bandit.arm import ParametricArm
 import torch
 from torch import Tensor
 from botorch.acquisition import qKnowledgeGradient, PosteriorMean
