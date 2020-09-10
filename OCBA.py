@@ -9,7 +9,14 @@ class OCBA:
     Algorithm is for minimization - has a maximize flag
     """
 
-    def __init__(self, K: int, N: int, N_0: Union[int, list], randomized: bool = False, maximize: bool = False):
+    def __init__(
+        self,
+        K: int,
+        N: int,
+        N_0: Union[int, list],
+        randomized: bool = False,
+        maximize: bool = False,
+    ):
         """
         Initialize the algorithm
         :param K: number of alternatives
@@ -23,7 +30,9 @@ class OCBA:
         self.remaining = N
         self.randomized = randomized
         if isinstance(N_0, int):
-            self.total_sampled = torch.ones(K) * N_0  # total samples allocated to each arm so far
+            self.total_sampled = (
+                torch.ones(K) * N_0
+            )  # total samples allocated to each arm so far
         else:
             self.total_sampled = torch.tensor(N_0)
         self.maximize = maximize
@@ -36,15 +45,15 @@ class OCBA:
         :return: Next one to sample
         """
         if x_bar.reshape(-1).size() != torch.Size([self.K]):
-            raise ValueError('x_bar must be a Tensor of size K.')
+            raise ValueError("x_bar must be a Tensor of size K.")
         if s_bar.reshape(-1).size() != torch.Size([self.K]):
-            raise ValueError('s_bar must be a Tensor of size K.')
+            raise ValueError("s_bar must be a Tensor of size K.")
         if self.remaining == 0:
-            raise ValueError('Budget already exhausted.')
+            raise ValueError("Budget already exhausted.")
         if any(s_bar <= 0):
-            raise ValueError('s_bar must be strictly positive.')
+            raise ValueError("s_bar must be strictly positive.")
         if self.maximize:
-            x_bar = - x_bar
+            x_bar = -x_bar
         x_bar = x_bar.reshape(-1)
         s_bar = s_bar.reshape(-1)
         # calculate alpha values
@@ -55,7 +64,9 @@ class OCBA:
         beta = s_bar.pow(2) / delta.pow(2)
         # beta[best_index] is not included in the summation below, thus set to 0
         beta[best_index] = 0
-        beta[best_index] = s_bar[best_index] * torch.sqrt(torch.sum(beta / s_bar.pow(2)))
+        beta[best_index] = s_bar[best_index] * torch.sqrt(
+            torch.sum(beta / s_bar.pow(2))
+        )
         alpha = beta / torch.sum(beta)
         i_star = None
         if not self.randomized:
@@ -73,7 +84,7 @@ class OCBA:
         return i_star
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # TODO: this might require additional testing
     ocba = OCBA(3, 50, 3, False, False)
     x_b = torch.tensor([0, 20, 10])

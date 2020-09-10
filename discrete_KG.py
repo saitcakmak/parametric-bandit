@@ -35,13 +35,13 @@ class DiscreteKGAlg(ABC):
         """
         mu = mu.reshape(-1)
         if mu.size() != torch.Size([self.M]):
-            raise ValueError('mu must be a tensor of size M.')
+            raise ValueError("mu must be a tensor of size M.")
         if Sigma.size() != torch.Size([self.M, self.M]):
-            raise ValueError('Sigma must be a tensor of size M x M.')
+            raise ValueError("Sigma must be a tensor of size M x M.")
         if self.minimize:
-            mu = - mu
+            mu = -mu
         # algorithm loop
-        v_star = -float('inf')
+        v_star = -float("inf")
         x_star = None
         for i in range(self.M):
             a = mu
@@ -102,11 +102,11 @@ class DiscreteKGAlg(ABC):
         # The indices of a and b start with 0, however the rest starts with 1. Be careful about this!
         M = a.size(-1)
         c = torch.empty(M + 1)
-        c[0] = -float('inf')
-        c[1] = float('inf')
+        c[0] = -float("inf")
+        c[1] = float("inf")
         A = [1]
         for i in range(1, M):
-            c[i + 1] = float('inf')
+            c[i + 1] = float("inf")
             done = False
             while not done:
                 j = A[-1]
@@ -119,7 +119,7 @@ class DiscreteKGAlg(ABC):
         return c, torch.tensor(A, dtype=torch.long)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     error_ = 1
     mu_ = torch.tensor([0.0, 1, 2, 3, -1, -2])
     M_ = len(mu_)

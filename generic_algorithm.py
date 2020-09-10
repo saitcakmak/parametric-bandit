@@ -13,8 +13,16 @@ class GenericAlgorithm:
     This doesn't do too well. It has many shortcomings.
     """
 
-    def __init__(self, arm_functions: List[SyntheticTestFunction], h: Callable, g: Callable, w_star0: float,
-                 n0: int = 10, retrain_gp: bool = False, verbose: bool = True):
+    def __init__(
+        self,
+        arm_functions: List[SyntheticTestFunction],
+        h: Callable,
+        g: Callable,
+        w_star0: float,
+        n0: int = 10,
+        retrain_gp: bool = False,
+        verbose: bool = True,
+    ):
         """
         Initialize the algorithm set-up with the given number of arms
 
@@ -34,7 +42,10 @@ class GenericAlgorithm:
         self.w_star0 = w_star0
         self.N = 0
         if self.verbose:
-            print("Initialization complete. mu: %s, KG: %s" % (self.arm_mu_best, self.arm_kg))
+            print(
+                "Initialization complete. mu: %s, KG: %s"
+                % (self.arm_mu_best, self.arm_kg)
+            )
 
     def _initialize_arms(self, arm_functions, n0, retrain_gp):
         """
@@ -49,7 +60,9 @@ class GenericAlgorithm:
         self.arm_mu_best = torch.empty(len(arm_functions))
         self.arm_kg = torch.empty(len(arm_functions))
         for i in range(len(arm_functions)):
-            arm = ParametricArm(function=arm_functions[i], num_init_samples=n0, retrain_gp=retrain_gp)
+            arm = ParametricArm(
+                function=arm_functions[i], num_init_samples=n0, retrain_gp=retrain_gp
+            )
             self.arms.append(arm)
             self.arm_mu_best[i] = arm.current_best_val
             self.arm_kg[i] = arm.kg_value
@@ -88,5 +101,7 @@ class GenericAlgorithm:
         self.arm_mu_best[next_sample] = self.arms[int(next_sample)].current_best_val
         self.N += 1
         if self.verbose:
-            print("%d th sample is complete. New mu, kg: (%s, %s)" % (self.N, self.arm_mu_best, self.arm_kg))
-
+            print(
+                "%d th sample is complete. New mu, kg: (%s, %s)"
+                % (self.N, self.arm_mu_best, self.arm_kg)
+            )

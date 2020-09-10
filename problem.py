@@ -13,11 +13,14 @@ class Problem:
     """
     This is a class to hold the problem parameters
     """
-    def __init__(self,
-                 functions: List[SyntheticTestFunction],
-                 alternative_points: List[Tensor],
-                 noise_std: float = None,
-                 gp_update_freq: int = 10):
+
+    def __init__(
+        self,
+        functions: List[SyntheticTestFunction],
+        alternative_points: List[Tensor],
+        noise_std: float = None,
+        gp_update_freq: int = 10,
+    ):
         """
         Initialize
         :param functions: The initialized StandardizedFunction objects
@@ -45,9 +48,15 @@ class Problem:
             Use fixed noise gp and a single sample per alternative
         :return: None
         """
-        if self.observations != list() or self.sample_mean != list() or self.sample_var != list():
-            raise ValueError("This is only for initialization. "
-                             "self.values / sample_mean / sample_var need to be empty lists.")
+        if (
+            self.observations != list()
+            or self.sample_mean != list()
+            or self.sample_var != list()
+        ):
+            raise ValueError(
+                "This is only for initialization. "
+                "self.values / sample_mean / sample_var need to be empty lists."
+            )
         if isinstance(num_samples, int):
             for i in range(self.arm_count):
                 self.observations.append(list())
@@ -102,17 +111,25 @@ class Problem:
             train_X = torch.cat(train_X_list, dim=0)
             train_Y = torch.cat(train_Y_list, dim=0)
             if self.noise_std is None:
-                model = SingleTaskGP(train_X, train_Y, outcome_transform=Standardize(m=1))
+                model = SingleTaskGP(
+                    train_X, train_Y, outcome_transform=Standardize(m=1)
+                )
             else:
-                model = FixedNoiseGP(train_X, train_Y, train_Yvar=torch.tensor([self.noise_std**2]).expand_as(train_Y),
-                                     outcome_transform=Standardize(m=1))
+                model = FixedNoiseGP(
+                    train_X,
+                    train_Y,
+                    train_Yvar=torch.tensor([self.noise_std ** 2]).expand_as(train_Y),
+                    outcome_transform=Standardize(m=1),
+                )
             mll = ExactMarginalLogLikelihood(model.likelihood, model)
             fit_gpytorch_model(mll)
             self.models[arm] = model
         else:
             last_point = self.alternative_points[arm][alternative].reshape(1, -1)
             last_observation = self.observations[arm][alternative][-1].reshape(1, -1)
-            self.models[arm].condition_on_observations(last_point, last_observation, noise=self.noise_std**2)
+            self.models[arm].condition_on_observations(
+                last_point, last_observation, noise=self.noise_std ** 2
+            )
 
     def update_sample_stats(self):
         """
@@ -138,7 +155,9 @@ class Problem:
             If not, we don't update sample stats. Saves on computation.
         :return: None
         """
-        self.observations[arm][alternative].append(self.functions[arm](self.alternative_points[arm][alternative]))
+        self.observations[arm][alternative].append(
+            self.functions[arm](self.alternative_points[arm][alternative])
+        )
         if ocba:
             values = torch.tensor(self.observations[arm][alternative])
             self.sample_mean[arm][alternative] = torch.mean(values)
@@ -162,9 +181,11 @@ class Problem:
             for i in range(self.arm_count):
                 post = self.models[i].posterior(self.alternative_points[i])
                 left_index = sum(alternative_count[:i])
-                right_index = sum(alternative_count[:i+1])
+                right_index = sum(alternative_count[: i + 1])
                 mean[left_index:right_index] = post.mean.squeeze()
-                covariance[left_index:right_index, left_index:right_index] = post.mvn.covariance_matrix
+                covariance[
+                    left_index:right_index, left_index:right_index
+                ] = post.mvn.covariance_matrix
         else:
             post = self.models[arm].posterior(self.alternative_points[arm])
             mean = post.mean
@@ -201,9 +222,11 @@ class Problem:
         for i in range(self.arm_count):
             true_val.append(torch.empty(len(self.alternative_points[i])))
             for j in range(len(self.alternative_points[i])):
-                arm_val = self.functions[i].evaluate_true(self.alternative_points[i][j].unsqueeze(0))
+                arm_val = self.functions[i].evaluate_true(
+                    self.alternative_points[i][j].unsqueeze(0)
+                )
                 if negate:
-                    arm_val = - arm_val
+                    arm_val = -arm_val
                 true_val[i][j] = arm_val
         return true_val
 

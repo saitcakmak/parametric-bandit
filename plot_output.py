@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 filename = "output/sparse_6x50_std50.pt"
 data = torch.load(filename)
-results = data['results']
+results = data["results"]
 
 keys = list(results.keys())
 keys.sort()
@@ -29,11 +29,16 @@ for i in range(key_count):
 
 alpha = 0.3
 plt.plot(keys, ocba_regret, label="OCBA")
-plt.fill_between(keys, ocba_regret-ocba_std, ocba_regret+ocba_std, alpha=alpha)
+plt.fill_between(keys, ocba_regret - ocba_std, ocba_regret + ocba_std, alpha=alpha)
 plt.plot(keys, kg_regret, label="KG")
-plt.fill_between(keys, kg_regret-kg_std, kg_regret+kg_std, alpha=alpha)
+plt.fill_between(keys, kg_regret - kg_std, kg_regret + kg_std, alpha=alpha)
 plt.plot(keys, composite_regret, label="Composite")
-plt.fill_between(keys, composite_regret-composite_std, composite_regret+composite_std, alpha=alpha)
+plt.fill_between(
+    keys,
+    composite_regret - composite_std,
+    composite_regret + composite_std,
+    alpha=alpha,
+)
 
 plt.legend()
 plt.grid(True)

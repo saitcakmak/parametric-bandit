@@ -1,6 +1,11 @@
 import torch
 from torch import Tensor
-from botorch.acquisition import qKnowledgeGradient, PosteriorMean, qExpectedImprovement, ExpectedImprovement
+from botorch.acquisition import (
+    qKnowledgeGradient,
+    PosteriorMean,
+    qExpectedImprovement,
+    ExpectedImprovement,
+)
 from botorch.test_functions.synthetic import SyntheticTestFunction
 from typing import Optional, Union, Tuple
 from botorch.models import SingleTaskGP
@@ -16,9 +21,14 @@ class ParametricArm:
     the class of an Arm
     """
 
-    def __init__(self, function: SyntheticTestFunction,
-                 num_init_samples: int = 10, retrain_gp: bool = False,
-                 num_restarts: int = 10, raw_samples: int = 1000):
+    def __init__(
+        self,
+        function: SyntheticTestFunction,
+        num_init_samples: int = 10,
+        retrain_gp: bool = False,
+        num_restarts: int = 10,
+        raw_samples: int = 1000,
+    ):
         """
         Initialize the Arm
 
@@ -49,9 +59,13 @@ class ParametricArm:
         # acq_func = qKnowledgeGradient(model=self.model, current_value=self.current_best_val)
         # acq_func = qExpectedImprovement(model=self.model, best_f=self.current_best_val)
         acq_func = ExpectedImprovement(model=self.model, best_f=self.current_best_val)
-        self.next_candidate, self.kg_value = optimize_acqf(acq_func, Tensor([[0], [1]]).repeat(1, self.dim),
-                                                           q=1, num_restarts=self.num_restarts,
-                                                           raw_samples=self.raw_samples)
+        self.next_candidate, self.kg_value = optimize_acqf(
+            acq_func,
+            Tensor([[0], [1]]).repeat(1, self.dim),
+            q=1,
+            num_restarts=self.num_restarts,
+            raw_samples=self.raw_samples,
+        )
 
     def _update_current_best(self):
         """
@@ -59,9 +73,13 @@ class ParametricArm:
         :return: None
         """
         pm = PosteriorMean(self.model)
-        self.current_best_sol, self.current_best_val = optimize_acqf(pm, Tensor([[0], [1]]).repeat(1, self.dim),
-                                                                     q=1, num_restarts=self.num_restarts,
-                                                                     raw_samples=self.raw_samples)
+        self.current_best_sol, self.current_best_val = optimize_acqf(
+            pm,
+            Tensor([[0], [1]]).repeat(1, self.dim),
+            q=1,
+            num_restarts=self.num_restarts,
+            raw_samples=self.raw_samples,
+        )
 
     def _function_call(self, X: Tensor) -> Tensor:
         """
@@ -82,7 +100,9 @@ class ParametricArm:
         """
         self.train_X = torch.rand((num_init_samples, self.dim))
         self.train_Y = self._function_call(self.train_X)
-        self.model = SingleTaskGP(self.train_X, self.train_Y, outcome_transform=Standardize(m=1))
+        self.model = SingleTaskGP(
+            self.train_X, self.train_Y, outcome_transform=Standardize(m=1)
+        )
         mll = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
         fit_gpytorch_model(mll)
 
