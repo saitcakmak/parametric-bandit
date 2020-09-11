@@ -4,7 +4,6 @@ import torch
 from torch import Tensor
 from typing import Tuple
 from scipy.stats import norm
-from botorch.utils import draw_sobol_normal_samples
 
 
 class DiscreteKGAlg(ABC):
@@ -51,7 +50,7 @@ class DiscreteKGAlg(ABC):
             b, index = torch.sort(b)
             a = a[index]
             # handle ties in b, sort a in increasing order if ties found
-            if any(b[1:] == b[:-1]):
+            if torch.any(b[1:] == b[:-1]):
                 for j in range(self.M):
                     a[b == b[j]], _ = torch.sort(a[b == b[j]])
             # remove the redundant entries as described in the algorithm
@@ -81,9 +80,11 @@ class DiscreteKGAlg(ABC):
         sigma_tilde = Sigma[:, index] / torch.sqrt(self.error + Sigma[index, index])
         return sigma_tilde
 
-    def _f(self, z: Tensor) -> Tensor:
+    @staticmethod
+    def _f(z: Tensor) -> Tensor:
         """
-        The function f defined in the paper as f(z) = phi(z) + z Phi(z) where phi and Phi are normal PDF and CDF
+        The function f defined in the paper as f(z) = phi(z) + z Phi(z) where
+        phi and Phi are standard normal PDF and CDF
         :param z: a Tensor of input values
         :return: corresponding f(z) values
         """
@@ -97,10 +98,11 @@ class DiscreteKGAlg(ABC):
         :param a: Input a
         :param b: Input b, in strictly increasing order
         :return: c and A, indices starting with 1 as in original algorithm description!
-        # TODO: it would be great if we could get this to work faster. Think about doing some vector operations instead.
+        # TODO: it would be great if we could get this to work faster.
+            Think about doing some vector operations instead.
         """
-        # The indices of a and b start with 0, however the rest starts with 1. Be careful about this!
-        M = a.size(-1)
+        # The indices of a and b start with 0, however the rest starts with 1.
+        M = a.shape[-1]
         c = torch.empty(M + 1)
         c[0] = -float("inf")
         c[1] = float("inf")

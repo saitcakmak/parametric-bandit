@@ -3,7 +3,7 @@ from typing import Callable, List
 import torch
 from botorch.test_functions.synthetic import SyntheticTestFunction
 
-from parametric_bandit.arm import ParametricArm
+from parametric_bandit.deprecated.arm import ParametricArm
 
 
 class GenericAlgorithm:
@@ -98,7 +98,7 @@ class GenericAlgorithm:
         # take the next sample and update relevant values
         if self.verbose:
             print("Sampling from arm %d." % int(next_sample))
-        self.arms[int(next_sample)].sample_next()
+        self.arms[int(next_sample)].sample_next_KG()
         self.arm_kg[next_sample] = self.arms[int(next_sample)].kg_value
         self.arm_mu_best[next_sample] = self.arms[int(next_sample)].current_best_val
         self.N += 1

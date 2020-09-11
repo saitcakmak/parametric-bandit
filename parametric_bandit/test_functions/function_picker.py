@@ -2,10 +2,7 @@
 The function picker.
 Find most in: https://www.sfu.ca/~ssurjano/optimization.html
 """
-from test_functions.simple_test_functions import SineQuadratic, SimpleQuadratic
-from test_functions.standardized_function import StandardizedFunction
-from test_functions.cont_newsvendor import ContinuousNewsvendor
-from test_functions.prod_line import ProductionLine
+from parametric_bandit.test_functions.standardized_function import StandardizedFunction
 from botorch.test_functions import (
     Ackley,
     Beale,
@@ -18,12 +15,13 @@ from botorch.test_functions import (
     ThreeHumpCamel,
     Powell,
     Hartmann,
+    Rosenbrock,
 )
-from botorch.test_functions import SyntheticTestFunction
+from parametric_bandit.test_functions.other_synthetic_functions import Alpine
+import torch
+from typing import Optional
 
 function_dict = {
-    "simplequad": SimpleQuadratic,
-    "sinequad": SineQuadratic,
     "powell": Powell,
     "beale": Beale,
     "dixonprice": DixonPrice,
@@ -32,49 +30,59 @@ function_dict = {
     "rastrigin": Rastrigin,
     "branin": Branin,
     "ackley": Ackley,
-    "hartmann3": Hartmann,
-    "hartmann4": Hartmann,
-    "hartmann6": Hartmann,
+    "hartmann": Hartmann,
     "sixhumpcamel": SixHumpCamel,
     "threehumpcamel": ThreeHumpCamel,
+    "alpine": Alpine,
+    "rosenbrock": Rosenbrock,
 }
 
 
 def function_picker(
     function_name: str,
-    noise_std: float = 0.1,
-    negate: bool = False,
-    reduce_dim: bool = False,
-) -> SyntheticTestFunction:
+    noise_std: float,
+    negate: bool = True,
+    device: Optional[torch.device] = None,
+) -> StandardizedFunction:
     """
     Returns the appropriate function callable
     If adding new BoTorch test functions, run them through StandardizedFunction.
     StandardizedFunction and all others listed here allow for a seed to be specified.
     If adding something else, make sure the forward (or __call__) takes a seed argument.
-    :param function_name: Function to be used
-    :param noise_std: observation noise level
-    :param negate: In most cases, should be true for maximization
-    :param reduce_dim: If True, last dimension of the input is ignored by the function
-    :return: Function callable
+
+    Args:
+        function_name: Function to be used. If the last character is a digit,
+            it is used as the dimension of the function. Passing a dimension with a
+            function that does not accept dimension may raise an Exception.
+        noise_std: the standard deviation of the observation noise
+        negate: In most cases, should be true for maximization. This is passed to the
+            StandardizedFunction, not the function itself, to ensure that evaluate_true
+            is also negated.
+        device: The device to run the experiment on. Defaults to `cpu'.
+
+    Returns:
+        The function callable
     """
-    if function_name == "newsvendor":
-        function = ContinuousNewsvendor()
-    elif function_name == "prod_line":
-        function = ProductionLine()
-    elif function_name in function_dict.keys():
-        if function_name[-1].isdigit():
+    if function_name[-1].isdigit():
+        dim = int(function_name[-1])
+        function_name = function_name[:-1]
+    else:
+        dim = None
+    if function_name in function_dict.keys():
+        # if the last character of function name is a number, then it is used as the
+        # dimension of the function.
+        if dim is not None:
             function = StandardizedFunction(
-                function_dict[function_name](
-                    dim=int(function_name[-1]), noise_std=noise_std, negate=negate
-                ),
-                reduce_dim=reduce_dim,
+                function_dict[function_name](dim=dim, noise_std=noise_std),
+                negate=negate,
+                device=device,
             )
         else:
             function = StandardizedFunction(
-                function_dict[function_name](noise_std=noise_std, negate=negate),
-                reduce_dim=reduce_dim,
+                function_dict[function_name](noise_std=noise_std),
+                negate=negate,
+                device=device,
             )
     else:
         raise ValueError("Function name was not found!")
-
     return function

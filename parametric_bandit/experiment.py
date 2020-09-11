@@ -9,13 +9,14 @@ and then send it a big block covariance matrix to use
 """
 
 import torch
+from torch import Tensor
 from parametric_bandit.test_functions.function_picker import function_picker
 from parametric_bandit.problem import Problem
 from parametric_bandit.OCBA import OCBA
 from copy import copy
 from time import time
 from parametric_bandit.discrete_KG import DiscreteKGAlg
-from typing import Union
+from typing import Union, Tuple, List
 
 negate = True  # negate the functions for maximization
 
@@ -27,7 +28,7 @@ def OCBA_exp(
     num_init_samples: int,
     obs_std: float = None,
     randomized: bool = False,
-):
+) -> Tuple[int, Tensor]:
     """
     Run the pure OCBA experiment
     :param prob: The initialized Problem object
@@ -70,6 +71,7 @@ def KG_exp(prob: Problem, budget: int, obs_std: float, n: list):
     :param n: list of number of alternatives per arm
     :return: Optimal arm
     # TODO: in an unknown noise setting, what noise level would we pass to this?
+        model.likelihood (or covar_module) inferred_noise level (or raw noise)
     """
     kg = DiscreteKGAlg(M=sum(n), error=obs_std ** 2, minimize=False)
     for i in range(budget):
@@ -97,7 +99,7 @@ def composite_exp(
     num_init_samples: int,
     obs_std: float,
     randomized: bool = False,
-):
+) -> Tuple[int, Tensor]:
     """
     Run the composite experiment.
     For each arm, when it is chosen, we will do KG to pick which one to sample.
@@ -131,22 +133,60 @@ def composite_exp(
     return arm, best
 
 
+def TS_exp(
+    prob: Problem,
+    budget: int,
+    n: list,
+) -> Tuple[int, Tensor]:
+    r"""
+    Runs the experiment using Thompson sampling.
+    Thompson sampling is applied by sampling from each arm, then picking the maximizer.
+
+    Args:
+        prob: The problem object
+        budget: Sampling budget
+        n: Number of alternatives in each arm
+
+    Returns:
+        The best arm and alternative
+    """
+    for i in range(budget):
+        arm, alternative, value = prob.ts_all_arms()
+        if i < budget - 1:
+            prob.new_sample(arm, alternative, ocba=False)
+    mu, Sigma = prob.get_arm_gp_mean_cov()
+    best = torch.argmax(mu)
+    arm = 0
+    while best >= n[arm]:
+        best -= n[arm]
+        arm += 1
+    return arm, best
+
+
 def function(name: str, obs_std: float):
     return function_picker(function_name=name, noise_std=obs_std, negate=negate)
 
 
-def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int):
+def single_rep(
+    seed: int,
+    n: list,
+    obs_std: float,
+    N: int,
+    num_init_samples: Union[int, Tensor, List[Tensor]],
+):
     """
     Single replication of the experiment
     :param seed: Experiment seed
     :param n: number of samples in each alternative. List of length 3 for now
     :param obs_std: standard deviation of the observations
     :param N: sampling budget after initialization
-    :param num_init_samples: number of samples from each alternative for initialization
+    :param num_init_samples: number of samples from each alternative for
+        initialization. See Problem.initialize_arms for detailed explanation.
     :return: regret of all three algorithms
     """
     torch.manual_seed(seed)
 
+    # Setup the problem
     functions = [
         function("branin", obs_std),
         function("levy", obs_std),
@@ -164,10 +204,7 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
     )
     problem.initialize_arms(num_samples=num_init_samples)
 
-    # TODO: MPS runs into the cholesky issue, which is likely slowing things down
-    # print(problem.mps_test(0, 1000))
-    # return 0
-
+    # OCBA exp
     # TODO: adjust it so we can switch between known and unknown noise levels
     if isinstance(num_init_samples, int):
         ocba_best = OCBA_exp(
@@ -178,6 +215,8 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
             obs_std=obs_std,
         )
         ocba_flat_best = sum(n[: ocba_best[0]]) + ocba_best[1]
+
+    # KG exp
     kg_best = KG_exp(prob=copy(problem), budget=N, obs_std=obs_std, n=n)
     kg_flat_best = sum(n[: kg_best[0]]) + kg_best[1]
     if isinstance(num_init_samples, int):
@@ -186,6 +225,8 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
         num_init = [len(e) for e in num_init_samples]
     else:
         raise ValueError("num_init_samples is of a type not handled yet.")
+
+    # Composite exp
     composite_best = composite_exp(
         prob=copy(problem), budget=N, n=n, num_init_samples=num_init, obs_std=obs_std
     )
@@ -198,17 +239,24 @@ def single_rep(seed: int, n: list, obs_std: float, N: int, num_init_samples: int
         best -= n[arm]
         arm += 1
 
+    # TS exp
+    ts_best = TS_exp(prob=copy(problem), budget=N, n=n)
+    ts_flat_best = sum(n[: ts_best[0]]) + ts_best[1]
+
     if isinstance(num_init_samples, int):
         ocba_regret = best_val - val[ocba_flat_best]
     else:
         ocba_regret = 0.0
     kg_regret = best_val - val[kg_flat_best]
     composite_regret = best_val - val[composite_flat_best]
-    return ocba_regret, kg_regret, composite_regret
+    ts_regret = best_val - val[ts_flat_best]
+    return ocba_regret, kg_regret, composite_regret, ts_regret
 
 
 if __name__ == "__main__":
     start = time()
-    res = single_rep(seed=0, n=[10] * 6, obs_std=1.0, N=10, num_init_samples=1)
+    res = single_rep(
+        seed=0, n=[50] * 6, obs_std=1.0, N=50, num_init_samples=1
+    )
     print(res)
     print(time() - start)

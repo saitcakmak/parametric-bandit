@@ -2,7 +2,8 @@ import torch
 from gpytorch import ExactMarginalLogLikelihood
 from torch import Tensor
 from botorch.test_functions import SyntheticTestFunction
-from typing import List, Union
+from parametric_bandit.test_functions.standardized_function import StandardizedFunction
+from typing import List, Union, Tuple
 from botorch.models import FixedNoiseGP, SingleTaskGP
 from botorch.fit import fit_gpytorch_model
 from botorch.models.transforms import Standardize
@@ -16,15 +17,16 @@ class Problem:
 
     def __init__(
         self,
-        functions: List[SyntheticTestFunction],
+        functions: List[Union[SyntheticTestFunction, StandardizedFunction]],
         alternative_points: List[Tensor],
         noise_std: float = None,
         gp_update_freq: int = 10,
-    ):
+    ) -> None:
         """
         Initialize
         :param functions: The initialized StandardizedFunction objects
-        :param alternative_points: The points where the alternatives are - for each arm
+        :param alternative_points: The points where the alternatives are.
+            A list of `num_alternatives x d_arm`-dim tensors.
         :param gp_update_freq: We refit the GP model every this many samples.
         """
         self.arm_count = len(functions)
@@ -34,26 +36,27 @@ class Problem:
         self.alternative_points = alternative_points
         self.noise_std = noise_std
         self.gp_update_freq = gp_update_freq
-        self.models = [None] * self.arm_count
+        self.models: List[SingleTaskGP] = [None] * self.arm_count
         self.sample_mean = list()
         self.sample_var = list()
         self.observations = list()
 
-    def initialize_arms(self, num_samples: Union[int, Tensor, List[Tensor]]):
+    def initialize_arms(self, num_samples: Union[int, Tensor, List[Tensor]]) -> None:
         """
-        TODO:
-            Should we sample each alternative twice to allow for comparison with OCBA?
-            We could then compare with full KG with less samples.
-            We can also compare with OCBA under a known noise setting.
-            Use fixed noise gp and a single sample per alternative
-        :return: None
+        Draw the initial samples and initialize the GP for each arm.
+
+        Args:
+            num_samples: If `int`, each alternative of each arm is sampled
+                `num_samples` times. If `Tensor`, each alternative of `i^th` arm is
+                sampled `num_samples[i]` times. If `List[Tensor]`, the `j^th`
+                alternative of `i^th` arm is sampled `num_samples[i][j]` times.
         """
         if (
             self.observations != list()
             or self.sample_mean != list()
             or self.sample_var != list()
         ):
-            raise ValueError(
+            raise RuntimeError(
                 "This is only for initialization. "
                 "self.values / sample_mean / sample_var need to be empty lists."
             )
@@ -85,17 +88,20 @@ class Problem:
                         self.observations[i][j].append(self.functions[i](point))
 
         else:
-            raise ValueError("Num_samples is not of the appropriate type.")
+            raise ValueError("Num_samples is not one of the appropriate types.")
 
         self.update_sample_stats()
         for i in range(self.arm_count):
             self.fit_gp_model(i, update=True)
 
-    def fit_gp_model(self, arm: int, alternative: int = None, update: bool = False):
+    def fit_gp_model(
+        self, arm: int, alternative: int = None, update: bool = False
+    ) -> None:
         """
         Fits a GP model to the given arm
         :param arm: Arm index
-        :param alternative: Last sampled arm alternative
+        :param alternative: Last sampled arm alternative. Used when adding samples
+            without refitting
         :param update: Forces GP to be fitted. Otherwise, it is fitted every
             self.gp_update_freq samples.
         :return: None
@@ -131,10 +137,9 @@ class Problem:
                 last_point, last_observation, noise=self.noise_std ** 2
             )
 
-    def update_sample_stats(self):
+    def update_sample_stats(self) -> None:
         """
         Updates the sample_mean and sample_var for all arms
-        :return: None
         """
         self.sample_mean = list()
         self.sample_var = list()
@@ -146,14 +151,13 @@ class Problem:
                 self.sample_mean[i].append(torch.mean(values))
                 self.sample_var[i].append(torch.var(values))
 
-    def new_sample(self, arm: int, alternative: int, ocba: bool):
+    def new_sample(self, arm: int, alternative: int, ocba: bool) -> None:
         """
         Sample from a given alternative and update its model / stats
         :param arm: arm index
         :param alternative: alternative index
         :param ocba: If OCBA, we do not update the GP model.
             If not, we don't update sample stats. Saves on computation.
-        :return: None
         """
         self.observations[arm][alternative].append(
             self.functions[arm](self.alternative_points[arm][alternative])
@@ -165,7 +169,7 @@ class Problem:
         else:
             self.fit_gp_model(arm, alternative)
 
-    def get_arm_gp_mean_cov(self, arm: int = None):
+    def get_arm_gp_mean_cov(self, arm: int = None) -> Tuple[Tensor, Tensor]:
         """
         Get the mean and covariance matrix of a given arm or all arms.
         :param arm: If given, return only for the arm. Otherwise, return all.
@@ -192,7 +196,7 @@ class Problem:
             covariance = post.mvn.covariance_matrix
         return mean, covariance
 
-    def get_arm_stats(self, arm: int = None):
+    def get_arm_stats(self, arm: int = None) -> Tuple[Tensor, Tensor]:
         """
         Returns Tensors sample mean and variance for the given arm.
         Returns a flattened Tensors of sample mean and variance if no arm specified.
@@ -212,11 +216,9 @@ class Problem:
             sample_var = torch.tensor(self.sample_var[arm]).reshape(-1)
         return sample_mean, sample_var
 
-    def get_true_val(self, negate: bool = True):
+    def get_true_val(self) -> List[Tensor]:
         """
         The true performance of the arms
-        :param negate: If True, the values are negated. Should be same as
-            the Function negate.
         :return: the true function value
         """
         true_val = list()
@@ -226,12 +228,12 @@ class Problem:
                 arm_val = self.functions[i].evaluate_true(
                     self.alternative_points[i][j].unsqueeze(0)
                 )
-                if negate:
-                    arm_val = -arm_val
                 true_val[i][j] = arm_val
         return true_val
 
-    def get_outer_stats(self, arm: int = None, num_samples: int = 100):
+    def get_outer_stats(
+        self, arm: int = None, num_samples: int = 100
+    ) -> Tuple[Tensor, Tensor]:
         """
         This returns the E[max] and Std[max] for the given arm estimated
         using samples from the GP. If no arm is specified, it loops over
@@ -256,16 +258,51 @@ class Problem:
             std = torch.std(max_sample)
             return mean, std
 
-    def mps_test(self, arm: int, num_samples: int):
+    def mps_sample(self, arm: int) -> Tensor:
         """
-        This is for testing the maximum posterior sampling
-        :param arm: Which arm to sample from
-        :param num_samples: Number of samples to take from the domain
+        Uses MaxPosteriorSampling and returns the maximizer of a GP sample path.
+
+        :param arm: The arm to sample from
         :return: max sample point
         """
         model = self.models[arm]
         dim = self.functions[arm].dim
         mps = MaxPosteriorSampling(model)
-        X = torch.rand((100, num_samples, dim))
-        samples = mps(X)
-        return samples
+        X = self.alternative_points[arm].reshape(1, -1, dim)
+        TS_sample = mps(X)
+        return TS_sample
+
+    def ts_sample(self, arm: int) -> Tuple[int, Tensor]:
+        r"""
+        Draw the next Thompson sample from the given arm. The difference between this
+        and MPS is that MPS doesn't return the value of the sample.
+
+        Args:
+            arm: The arm to sample from
+
+        Returns:
+            The max sample point and the sample value
+        """
+        model = self.models[arm]
+        X = self.alternative_points[arm]
+        sample_path = model.posterior(X).rsample()
+        max_val, max_ind = torch.max(sample_path, dim=-2)
+        return int(max_ind), max_val.squeeze()
+
+    def ts_all_arms(self) -> Tuple[int, int, Tensor]:
+        r"""
+        Runs ts_sample for each arm and returns the maximizer.
+
+        Returns:
+            The arm with the best sample, the alternative, and the value
+        """
+        best_arm = None
+        best_alternative = None
+        best_value = torch.tensor([-float("Inf")])
+        for i in range(self.arm_count):
+            alternative, value = self.ts_sample(i)
+            if value > best_value:
+                best_arm = i
+                best_alternative = alternative
+                best_value = value
+        return best_arm, best_alternative, best_value

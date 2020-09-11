@@ -13,6 +13,7 @@ from botorch.fit import fit_gpytorch_model
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from botorch.optim import optimize_acqf
 from botorch.models.transforms import Standardize
+from botorch.generation.sampling import MaxPosteriorSampling
 
 
 # noinspection PyArgumentList
@@ -51,14 +52,16 @@ class ParametricArm:
         self.retrain_gp = retrain_gp
         self.num_samples = num_init_samples
 
-    def _maximize_kg(self):
+    def _maximize_kg(self) -> None:
         """
-        maximizes the KG acquisition function and stores the resulting value and the candidate
-        :return: None
+        maximizes the KG acquisition function and stores the resulting value and
+        the candidate
         """
-        # acq_func = qKnowledgeGradient(model=self.model, current_value=self.current_best_val)
+        acq_func = qKnowledgeGradient(
+            model=self.model, current_value=self.current_best_val
+        )
         # acq_func = qExpectedImprovement(model=self.model, best_f=self.current_best_val)
-        acq_func = ExpectedImprovement(model=self.model, best_f=self.current_best_val)
+        # acq_func = ExpectedImprovement(model=self.model, best_f=self.current_best_val)
         self.next_candidate, self.kg_value = optimize_acqf(
             acq_func,
             Tensor([[0], [1]]).repeat(1, self.dim),
@@ -67,10 +70,9 @@ class ParametricArm:
             raw_samples=self.raw_samples,
         )
 
-    def _update_current_best(self):
+    def _update_current_best(self) -> None:
         """
-        return the current best solution and corresponding value
-        :return: None
+        Updates the current best solution and corresponding value
         """
         pm = PosteriorMean(self.model)
         self.current_best_sol, self.current_best_val = optimize_acqf(
@@ -93,10 +95,9 @@ class ParametricArm:
         # TODO: adjust for minimization
         return -self.function(X).unsqueeze(1)
 
-    def _initialize_model(self, num_init_samples: int):
+    def _initialize_model(self, num_init_samples: int) -> None:
         """
         initialize the GP model with num_init_samples of initial samples
-        :return: None
         """
         self.train_X = torch.rand((num_init_samples, self.dim))
         self.train_Y = self._function_call(self.train_X)
@@ -106,12 +107,11 @@ class ParametricArm:
         mll = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
         fit_gpytorch_model(mll)
 
-    def _update_model(self, new_sample: Tensor, new_observation: Tensor):
+    def _update_model(self, new_sample: Tensor, new_observation: Tensor) -> None:
         """
         Update the GP model with the new observation(s)
         :param new_sample: sampled point
         :param new_observation: observed function value
-        :return: None
         """
         self.train_X = torch.cat((self.train_X, new_sample), 0)
         self.train_Y = torch.cat((self.train_Y, new_observation), 0)
@@ -125,7 +125,6 @@ class ParametricArm:
         sample the next point, i.e. the point that maximizes KG
         update the model and retrain if needed
         update the relevant values
-        :return:
         """
         Y = self._function_call(self.next_candidate)
         self._update_model(self.next_candidate, Y)

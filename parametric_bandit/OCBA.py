@@ -58,7 +58,6 @@ class OCBA:
         s_bar = s_bar.reshape(-1)
         # calculate alpha values
         x_best, best_index = torch.min(x_bar, dim=-1)
-        beta = torch.zeros(self.K)
         # define delta with a tiny perturbation to avoid division by zero
         delta = x_bar - x_best + 10 ** -8
         beta = s_bar.pow(2) / delta.pow(2)
